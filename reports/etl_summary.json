@@ -1,0 +1,7 @@
+{
+  "database": "data\\consultbae.db",
+  "people": 71,
+  "source_records": 105,
+  "quarantined_records": 3,
+  "quality_issues": 27
+}
