@@ -1,0 +1,294 @@
+{
+  "name": "ConsultBae – Duplicate Detection & Alert Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "consultbae-search",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "038be79a-9c22-41f3-af8b-28a66b58e8b6",
+      "name": "Webhook",
+      "webhookId": "4a65d3f0-575e-44f1-bf06-1dbc68f8907d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "853bafb5-2dfc-43a0-a48c-073fa9dd9332",
+              "leftValue": "={{ $json.email || $json.body?.email || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a0e530cb-980e-4099-b82a-09292e38f5da",
+      "name": "Validate Email"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2ac68a5f-4e9a-4082-8692-44335a141204",
+              "name": "normalized_email",
+              "value": "={{ ($json.email || $json.body?.email || '').trim().toLowerCase() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "63860af5-89be-411a-a75f-09772f633570",
+      "name": "Normalize Email"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/person",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.normalized_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "c7158c15-97f9-46bf-926a-52a5470d65ab",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6a4fca14-e20f-4459-b9d0-e663089c33aa",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "d683bd4c-6b7f-4600-b776-a20190a1f4cc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "94eebf0e-00c2-40ab-b36a-b5f065b5a22f",
+              "name": "alert_type",
+              "value": "duplicate_person",
+              "type": "string"
+            },
+            {
+              "id": "86929463-0f05-4d9a-aaef-992f91c12c50",
+              "name": "person_id",
+              "value": "={{ $json.person.person_id }}",
+              "type": "string"
+            },
+            {
+              "id": "48635a30-cdc4-409c-9b6a-5e2dba5d87ae",
+              "name": "name",
+              "value": "={{ $json.person.canonical_name }}",
+              "type": "string"
+            },
+            {
+              "id": "02c74d66-be29-46ae-92a4-76ea77321e21",
+              "name": "email",
+              "value": "={{ $json.person.canonical_email }}",
+              "type": "string"
+            },
+            {
+              "id": "08711198-6094-4fa1-a81d-dde9c16f8305",
+              "name": "phone",
+              "value": "={{ $json.person.canonical_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "a826d454-4d7a-4456-9611-48e2f7eb214b",
+              "name": "city",
+              "value": "={{ $json.person.canonical_city }}",
+              "type": "string"
+            },
+            {
+              "id": "c4176436-87b8-4bfa-ae5e-7f3404132432",
+              "name": "message",
+              "value": "Duplicate person detected in ConsultBae database",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "2d29b0e5-a93c-49ea-bc62-ea2a71eb1ee1",
+      "name": "Duplicate Alert"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/duplicate-alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "07f69b22-6c47-48d8-bf81-5e5580ce261c",
+      "name": "Send Duplicate Alert"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Email": {
+      "main": [
+        [
+          {
+            "node": "Normalize Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Email": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Duplicate Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "981f1dff-87d9-4726-840a-aae5fddb7b08",
+  "meta": {
+    "instanceId": "fabf07bd3e2b0591f1b2be6cfb6d349a065a6751e3c28e642fa1c1acdc0ccff2"
+  },
+  "nodeGroups": [],
+  "id": "bhZbaMLAXrNFkKiL",
+  "tags": []
+}
